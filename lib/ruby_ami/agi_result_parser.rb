@@ -11,7 +11,7 @@ module RubyAMI
 
     def initialize(result_string)
       @result_string = result_string.dup
-      raise ArgumentError, "The result string did not match the required format." unless match
+      raise ArgumentError, "The result string (#{@result_string}) did not match the required format (#{FORMAT})." unless match
       parse
     end
 
