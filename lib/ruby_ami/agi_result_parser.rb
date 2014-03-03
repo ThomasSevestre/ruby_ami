@@ -7,6 +7,7 @@ module RubyAMI
     FORMAT          = /^(?<code>\d{3})( result=(?<result>-?\d*))? ?(?<data>\(?.*\)?)?$/.freeze
     DATA_KV_FORMAT  = /(?<key>[\w\d]+)=(?<value>[\w\d]*)/.freeze
     DATA_CLEANER    = /(^\()|(\)$)/.freeze
+    EMPTY_STRING    = ''.freeze
 
     def initialize(result_string)
       @result_string = result_string.dup
@@ -32,7 +33,7 @@ module RubyAMI
     def parse
       @code = match[:code].to_i
       @result = match[:result] ? match[:result].to_i : nil
-      @data = match[:data] ? match[:data].gsub(DATA_CLEANER, '').freeze : nil
+      @data = match[:data] ? match[:data].gsub(DATA_CLEANER, EMPTY_STRING).freeze : nil
     end
 
     def data_kv_match
