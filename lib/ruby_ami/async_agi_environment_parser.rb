@@ -5,6 +5,7 @@ module RubyAMI
   class AsyncAGIEnvironmentParser
     NEWLINE = '%0A'.freeze
     COLON_SPACE = '%3A%20'.freeze
+    EMPTY_STRING = ''.freeze
 
     def initialize(environment_string)
       @environment_string = environment_string.dup
@@ -15,7 +16,7 @@ module RubyAMI
       @environment_string.split(NEWLINE).map! do |p|
         p.split COLON_SPACE
       end.each do |element_0, element_1|
-        hash[element_0.to_sym] = CGI.unescape(element_1 || '')
+        hash[element_0.to_sym] = CGI.unescape(element_1 || EMPTY_STRING)
       end
       hash
     end

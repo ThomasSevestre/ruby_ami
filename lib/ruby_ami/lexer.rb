@@ -15,6 +15,7 @@ module RubyAMI
     HEADER_SLICE      = /.*\r\n/
     IMMEDIATE_RESP    = /.*/
     CLASSIFIER        = /((?<event>#{EVENT})|(?<success>#{SUCCESS})|(?<pong>#{PONG})|(?<follows>#{FOLLOWS})|(?<error>#{ERROR})|(?<immediate>#{IMMEDIATE_RESP})\r\n)\r\n/i
+    EMPTY_STRING = ''.freeze
 
     attr_accessor :ami_version
 
@@ -140,10 +141,10 @@ module RubyAMI
     end
 
     def handle_response_follows(obj, raw)
-      obj.text_body ||= ''
+      obj.text_body ||= EMPTY_STRING
       obj.text_body << raw
       return false unless raw =~ FOLLOWSDELIMITER
-      obj.text_body.sub! FOLLOWSDELIMITER, ''
+      obj.text_body.sub! FOLLOWSDELIMITER, EMPTY_STRING
       obj.text_body.chomp!
       true
     end
