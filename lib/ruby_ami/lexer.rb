@@ -2,19 +2,19 @@
 
 module RubyAMI
   class Lexer
-    STANZA_BREAK      = "\r\n\r\n"
-    PROMPT            = /Asterisk Call Manager\/(\d+\.\d+)\r\n/
-    KEYVALUEPAIR      = /^([[[:alnum:]]-_ ]+): *(.*)\r\n/
-    FOLLOWSDELIMITER  = /\r?\n?--END COMMAND--\r\n\r\n/
-    SUCCESS           = /response: *success/i
-    PONG              = /response: *pong/i
-    EVENT             = /event: *(?<event_name>.*)?/i
-    ERROR             = /response: *error/i
-    FOLLOWS           = /response: *follows/i
-    SCANNER           = /.*?#{STANZA_BREAK}/m
-    HEADER_SLICE      = /.*\r\n/
-    IMMEDIATE_RESP    = /.*/
-    CLASSIFIER        = /((?<event>#{EVENT})|(?<success>#{SUCCESS})|(?<pong>#{PONG})|(?<follows>#{FOLLOWS})|(?<error>#{ERROR})|(?<immediate>#{IMMEDIATE_RESP})\r\n)\r\n/i
+    STANZA_BREAK      = "\r\n\r\n".freeze
+    PROMPT            = /Asterisk Call Manager\/(\d+\.\d+)\r\n/.freeze
+    KEYVALUEPAIR      = /^([[[:alnum:]]-_ ]+): *(.*)\r\n/.freeze
+    FOLLOWSDELIMITER  = /\r?\n?--END COMMAND--\r\n\r\n/.freeze
+    SUCCESS           = /response: *success/i.freeze
+    PONG              = /response: *pong/i.freeze
+    EVENT             = /event: *(?<event_name>.*)?/i.freeze
+    ERROR             = /response: *error/i.freeze
+    FOLLOWS           = /response: *follows/i.freeze
+    SCANNER           = /.*?#{STANZA_BREAK}/m.freeze
+    HEADER_SLICE      = /.*\r\n/.freeze
+    IMMEDIATE_RESP    = /.*/.freeze
+    CLASSIFIER        = /((?<event>#{EVENT})|(?<success>#{SUCCESS})|(?<pong>#{PONG})|(?<follows>#{FOLLOWS})|(?<error>#{ERROR})|(?<immediate>#{IMMEDIATE_RESP})\r\n)\r\n/i.freeze
     EMPTY_STRING = ''.freeze
 
     attr_accessor :ami_version
