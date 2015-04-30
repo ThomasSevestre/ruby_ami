@@ -73,6 +73,7 @@ module RubyAMI
       @lexer << data
     end
 
+    # lexer callback
     def message_received(message)
       logger.trace "[RECV] #{message.inspect}"
       case message
@@ -91,10 +92,12 @@ module RubyAMI
       end
     end
 
+    # lexer callback
     def syntax_error_encountered(ignored_chunk)
       logger.error "Encountered a syntax error. Ignoring chunk: #{ignored_chunk.inspect}"
     end
 
+    # lexer callback
     alias :error_received :message_received
 
     private
