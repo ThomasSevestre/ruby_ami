@@ -1,4 +1,5 @@
 # [develop](https://github.com/adhearsion/ruby_ami)
+  * Bugfix: Catch for Errno::HOSTUNREACH error when connecting to AMI
   * Bugfix: Add support for Goodbye responses instead of processing them as syntax errors 
 
 # [2.2.1](https://github.com/adhearsion/ruby_ami/compare/v2.2.0...v2.2.1) - [2014-05-22](https://rubygems.org/gems/ruby_ami/versions/2.2.1)
