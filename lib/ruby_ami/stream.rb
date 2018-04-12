@@ -51,9 +51,7 @@ module RubyAMI
           end
         end
         # handle asterisk events
-        if ::IO.select([@socket.io], nil, nil, 1)
-          receive_data @socket.readpartial(4096)
-        end
+        receive_data @socket.readpartial(4096)
       end
     rescue Errno::ECONNREFUSED, Errno::EHOSTUNREACH, SocketError => e
       logger.error "Connection failed due to #{e.class}. Check your config and the server."
