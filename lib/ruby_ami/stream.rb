@@ -37,7 +37,7 @@ module RubyAMI
     end
 
     def run
-      @socket = TCPSocket.from_ruby_socket ::TCPSocket.new(@host, @port)
+      @socket = ::TCPSocket.new(@host, @port)
       post_init
       loop do
         # handle custom events
@@ -49,7 +49,7 @@ module RubyAMI
           end
         end
         # handle asterisk events
-        if IO.select([@socket], nil, nil, 1)
+        if ::IO.select([@socket], nil, nil, 1)
           receive_data @socket.readpartial(4096)
         end
       end
