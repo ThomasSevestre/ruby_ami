@@ -25,18 +25,34 @@ module RubyAMI
       @lexer = Lexer.new self
       @sent_actions   = {}
       @causal_actions = {}
+      @custom_event_queue= Queue.new
     end
 
     [:started, :stopped, :ready].each do |state|
       define_method("#{state}?") { @state == state }
     end
 
+    def add_custom_event(event)
+      @custom_event_queue<< event
+    end
+
     def run
-      Timeout::timeout(@timeout) do
-        @socket = TCPSocket.from_ruby_socket ::TCPSocket.new(@host, @port)
-      end
+      @socket = TCPSocket.from_ruby_socket ::TCPSocket.new(@host, @port)
       post_init
-      loop { receive_data @socket.readpartial(4096) }
+      loop do
+        # handle custom events
+        loop do
+          begin
+            fire_event(@custom_event_queue.pop(true))
+          rescue ThreadError
+            break
+          end
+        end
+        # handle asterisk events
+        if IO.select([@socket], nil, nil, 1)
+          receive_data @socket.readpartial(4096)
+        end
+      end
     rescue Errno::ECONNREFUSED, Errno::EHOSTUNREACH, SocketError => e
       logger.error "Connection failed due to #{e.class}. Check your config and the server."
     rescue EOFError
