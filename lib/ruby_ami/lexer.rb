@@ -141,7 +141,7 @@ module RubyAMI
     end
 
     def handle_response_follows(obj, raw)
-      obj.text_body ||= EMPTY_STRING
+      obj.text_body ||= ""
       obj.text_body << raw
       return false unless raw =~ FOLLOWSDELIMITER
       obj.text_body.sub! FOLLOWSDELIMITER, EMPTY_STRING
