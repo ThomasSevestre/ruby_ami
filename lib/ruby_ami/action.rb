@@ -1,9 +1,22 @@
+# frozen_string_literal: true
 module RubyAMI
   class Action
     attr_reader :name, :headers, :action_id, :response
 
-    CAUSAL_EVENT_NAMES = %w[queuestatus sippeers iaxpeers parkedcalls dahdishowchannels coreshowchannels
-                            dbget status agents konferencelist confbridgelist confbridgelistrooms] unless defined? CAUSAL_EVENT_NAMES
+    CAUSAL_EVENT_NAMES = %w(
+      queuestatus
+      sippeers
+      iaxpeers
+      parkedcalls
+      dahdishowchannels
+      coreshowchannels
+      dbget
+      status
+      agents
+      konferencelist
+      confbridgelist
+      confbridgelistrooms
+    )
 
     def initialize(name, headers = {}, &block)
       @name       = name.to_s.downcase.freeze
@@ -11,7 +24,6 @@ module RubyAMI
       @action_id  = RubyAMI.new_uuid
       @response   = nil
       @complete   = false
-      @events     = []
       @callback   = block
     end
 
@@ -49,7 +61,7 @@ module RubyAMI
       when "konferencelist"
         "conferencelistcomplete"
       else
-        name + "complete"
+        "#{name}complete"
       end
     end
 
@@ -57,11 +69,15 @@ module RubyAMI
     # Converts this action into a protocol-valid String, ready to be sent over a socket.
     #
     def to_s
-      @textual_representation ||= (
-          "Action: #{@name}\r\nActionID: #{@action_id}\r\n" +
-          @headers.map { |(key,value)| "#{key}: #{value}" }.join("\r\n") +
-          (@headers.any? ? "\r\n\r\n" : "\r\n")
-      )
+      if @textual_representation.nil?
+        @textual_representation= String.new
+        @textual_representation<< "Action: #{@name}\r\nActionID: #{@action_id}\r\n"
+        @headers.each do |(key,value)|
+          @textual_representation<< "#{key}: #{value}\r\n"
+        end
+        @textual_representation<< "\r\n"
+      end
+      @textual_representation
     end
 
     def <<(message)
@@ -70,7 +86,7 @@ module RubyAMI
         self.response = message
         complete!
       when Event
-        raise StandardError, 'This action should not trigger events. Maybe it is now a causal action? This is most likely a bug in RubyAMI' unless has_causal_events?
+        raise 'This action should not trigger events. Maybe it is now a causal action? This is most likely a bug in RubyAMI' unless has_causal_events?
         response.events << message
         complete! if message.name.downcase == causal_event_terminator_name
       when Response
@@ -80,10 +96,9 @@ module RubyAMI
       self
     end
 
-    def eql?(other)
+    def ==(other)
       to_s == other.to_s
     end
-    alias :== :eql?
 
     private
 

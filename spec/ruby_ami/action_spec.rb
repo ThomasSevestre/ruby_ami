@@ -68,7 +68,7 @@ module RubyAMI
 
         context 'with an event' do
           it 'should raise an error' do
-            lambda { subject << Event.new('foo') }.should raise_error StandardError, /causal action/
+            lambda { subject << Event.new('foo') }.should raise_error RuntimeError, /causal action/
           end
         end
       end

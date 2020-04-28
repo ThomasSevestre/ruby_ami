@@ -1,4 +1,4 @@
-# encoding: utf-8
+# frozen_string_literal: true
 module RubyAMI
   class Error < StandardError
     attr_accessor :message, :action
@@ -23,10 +23,6 @@ module RubyAMI
 
     def action_id
       @headers['ActionID']
-    end
-
-    def inspect
-      "#<#{self.class} #{[:message, :headers].map { |c| "#{c}=#{self.__send__(c).inspect rescue nil}" }.compact * ', '}>"
     end
   end
 end # RubyAMI

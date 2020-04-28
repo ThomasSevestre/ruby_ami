@@ -1,12 +1,10 @@
-# encoding: utf-8
+# frozen_string_literal: true
 module RubyAMI
   class Stream
     class ConnectionStatus
-      def eql?(other)
+      def ==(other)
         other.is_a? self.class
       end
-
-      alias :== :eql?
     end
 
     Connected = Class.new ConnectionStatus
@@ -28,7 +26,7 @@ module RubyAMI
       @custom_event_queue= Queue.new
     end
 
-    [:started, :stopped, :ready].each do |state|
+    [:started, :stopped].each do |state|
       define_method("#{state}?") { @state == state }
     end
 
@@ -103,7 +101,7 @@ module RubyAMI
         end
       when Response, Error
         action = sent_action_for_response message
-        raise StandardError, "Received an AMI response with an unrecognized ActionID! #{message.inspect}" unless action
+        raise "Received an AMI response with an unrecognized ActionID! #{message.inspect}" unless action
         action << message
       end
     end

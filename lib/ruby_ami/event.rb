@@ -1,4 +1,4 @@
-# encoding: utf-8
+# frozen_string_literal: true
 require 'ruby_ami/response'
 
 module RubyAMI
@@ -10,8 +10,8 @@ module RubyAMI
       @name = name
     end
 
-    def inspect_attributes
-      [:name] + super
+    def ==(o)
+      super && @name == o.name
     end
   end
 end # RubyAMI

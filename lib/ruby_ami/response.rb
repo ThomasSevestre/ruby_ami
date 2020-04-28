@@ -1,15 +1,13 @@
-# encoding: utf-8
+# frozen_string_literal: true
 module RubyAMI
   ##
   # This is the object containing a response from Asterisk.
   #
   class Response
-    class << self
-      def from_immediate_response(text)
-        new.tap do |instance|
-          instance.text_body = text
-        end
-      end
+    def self.from_immediate_response(text)
+      instance= new
+      instance.text_body = text
+      instance
     end
 
     attr_accessor :text_body, # For "Response: Follows" sections
@@ -44,17 +42,8 @@ module RubyAMI
       @headers['ActionID']
     end
 
-    def inspect
-      "#<#{self.class} #{inspect_attributes.map { |c| "#{c}=#{self.__send__(c).inspect rescue nil}" }.compact * ', '}>"
+    def ==(o)
+      self.class == o.class && @headers == o.headers
     end
-
-    def inspect_attributes
-      [:headers, :text_body, :events]
-    end
-
-    def eql?(o, *fields)
-      o.is_a?(self.class) && (fields + inspect_attributes).all? { |f| self.__send__(f) == o.__send__(f) }
-    end
-    alias :== :eql?
   end
 end # RubyAMI
