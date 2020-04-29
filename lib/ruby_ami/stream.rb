@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 module RubyAMI
-  class Stream
+  class Stream < EventMachine::Connection
     class ConnectionStatus
       def ==(other)
         other.is_a? self.class
@@ -10,15 +10,15 @@ module RubyAMI
     Connected = Class.new ConnectionStatus
     Disconnected = Class.new ConnectionStatus
 
-    include Celluloid::IO
-
     attr_reader :logger
 
-    finalizer :finalize
+    def initialize(username, password, event_callback, unbind_callback= nil, logger = Logger.new(STDOUT) )
+      @username= username
+      @password= password
+      @event_callback= event_callback
+      @unbind_callback= unbind_callback
+      @logger = logger
 
-    def initialize(host, port, username, password, event_callback, logger = Logger, timeout = 0)
-      super()
-      @host, @port, @username, @password, @event_callback, @logger, @timeout = host, port, username, password, event_callback, logger, timeout
       logger.debug "Starting up..."
       @lexer = Lexer.new self
       @sent_actions   = {}
@@ -34,60 +34,81 @@ module RubyAMI
       @custom_event_queue<< event
     end
 
-    def run
-      Timeout::timeout(@timeout) do
-        @socket = TCPSocket.from_ruby_socket ::TCPSocket.new(@host, @port)
-      end
-      post_init
-      loop do
-        # handle custom events
-        loop do
-          begin
-            fire_event(@custom_event_queue.pop(true))
-          rescue ThreadError
-            break
-          end
-        end
-        # handle asterisk events
-        receive_data @socket.readpartial(4096)
-      end
-    rescue Errno::ECONNREFUSED, Errno::EHOSTUNREACH, SocketError => e
-      logger.error "Connection failed due to #{e.class}. Check your config and the server."
-    rescue EOFError
-      logger.info "Client socket closed!"
-    rescue Timeout::Error
-      logger.error "Timeout exceeded while trying to connect."
-    ensure
-      async.terminate
+    def async_send_action(*args, &block)
+      action = Action.new *args, &block
+      logger.trace "[SEND] #{action.to_s}"
+      register_sent_action action
+      send_data action.to_s
+      action
     end
 
+    def send_action(name, headers = {})
+      ivar= Concurrent::IVar.new
+
+      EM.next_tick do
+        begin
+          async_send_action(name, headers) do |response|
+            ivar.set(response)
+          end
+        rescue => e
+          ivar.set(e)
+        end
+      end
+
+      ivar.wait
+
+      if ivar.value.is_a?(Exception)
+        raise ivar.value
+      else
+        ivar.value
+      end
+    end
+
+    def fiber_send_action(name, headers = {})
+      fiber= Fiber.current
+
+      async_send_action(name, headers) do |response|
+        fiber.resume(response)
+      end
+
+      response= Fiber.yield
+
+      if response.is_a?(Exception)
+        raise response
+      else
+        response
+      end
+    end
+
+    ####################
+    # EM callbacks
     def post_init
       @state = :started
       fire_event Connected.new
       login @username, @password if @username && @password
     end
 
-    def send_data(data)
-      @socket.write data
-    end
-
-    def send_action(name, headers = {})
-      condition = Celluloid::Condition.new
-      action = dispatch_action name, headers do |response|
-        condition.signal response
-      end
-      condition.wait
-      action.response.tap do |resp|
-        abort resp if resp.is_a? Exception
-      end
+    def connection_completed
+      post_init unless started?
     end
 
     def receive_data(data)
+      while !@custom_event_queue.empty?
+        fire_event @custom_event_queue.pop
+      end
       logger.trace "[RECV] #{data}"
       @lexer << data
     end
 
-    # lexer callback
+    def unbind
+      logger.debug "Finalizing stream"
+      @state = :stopped
+      fire_event Disconnected.new
+      @unbind_callback&.call(self)
+    end
+
+    ####################
+    # lexer callbacks
     def message_received(message)
       logger.trace "[RECV] #{message.inspect}"
       case message
@@ -106,29 +127,19 @@ module RubyAMI
       end
     end
 
-    # lexer callback
     def syntax_error_encountered(ignored_chunk)
       logger.error "Encountered a syntax error. Ignoring chunk: #{ignored_chunk.inspect}"
     end
 
-    # lexer callback
     alias :error_received :message_received
 
     private
 
     def login(username, password, event_mask = 'On')
-      dispatch_action 'Login',
+      async_send_action 'Login',
         'Username' => username,
         'Secret'   => password,
         'Events'   => event_mask
-    end
-
-    def dispatch_action(*args, &block)
-      action = Action.new *args, &block
-      logger.trace "[SEND] #{action.to_s}"
-      register_sent_action action
-      send_data action.to_s
-      action
     end
 
     def fire_event(event)
@@ -158,13 +169,6 @@ module RubyAMI
 
     def complete_causal_action_for_event(event)
       @causal_actions.delete event.action_id
-    end
-
-    def finalize
-      logger.debug "Finalizing stream"
-      @socket.close if @socket
-      @state = :stopped
-      fire_event Disconnected.new
     end
   end
 end

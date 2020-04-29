@@ -18,8 +18,10 @@ Gem::Specification.new do |s|
   s.executables   = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
   s.require_paths = ["lib"]
 
-  s.add_runtime_dependency %q<celluloid-io>, ["~> 0.13"]
+  s.add_runtime_dependency %q<eventmachine>, ["~> 1.2.7"]
+  s.add_runtime_dependency %q<concurrent-ruby>, ["~> 1.1.6"]
 
+  s.add_development_dependency %q<celluloid-io>, ["0.17.3"]
   s.add_development_dependency %q<bundler>, ["~> 1.0"]
   s.add_development_dependency %q<rspec>, ["~> 2.5"]
   s.add_development_dependency %q<cucumber>, [">= 0"]

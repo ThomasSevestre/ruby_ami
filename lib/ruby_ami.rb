@@ -1,6 +1,7 @@
-%w{
-  celluloid/io
-}.each { |f| require f }
+require "eventmachine"
+require "concurrent/ivar"
+
+require "logger"
 
 class Logger
   alias :trace :debug
@@ -13,7 +14,6 @@ module RubyAMI
 end
 
 %w{
-  core_ext/celluloid
   action
   agi_result_parser
   async_agi_environment_parser
