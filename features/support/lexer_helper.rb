@@ -105,6 +105,6 @@ end
 def syntax_error_data(name)
   case name
     when "immediate_packet_with_colon"
-      "!IJ@MHY:!&@B*!B @ ! @^! @ !@ !\r!@ ! @ !@ ! !!m, \n\\n\n"
+      "!IJ@MHY:!&@B*!B @ ! @^! @ !@ !\r!@ ! @ !@ ! !!m, \n\\n\r\n"
   end
 end

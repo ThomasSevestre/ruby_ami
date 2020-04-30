@@ -171,6 +171,13 @@ Feature: Lexing AMI
     Then the protocol should have lexed without syntax errors
     And 1 message should have been received
 
+  Scenario: Executing a stanza that was partially received
+    Given a new lexer
+    And a normal login success with events split into two pieces by line
+
+    Then the protocol should have lexed without syntax errors
+    And 1 message should have been received
+
   Scenario: Receiving an AMI error followed by a normal event
     Given a new lexer
     And an AMI error whose message is "Missing action in request"

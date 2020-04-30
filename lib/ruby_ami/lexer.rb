@@ -1,19 +1,14 @@
 # frozen_string_literal: true
 module RubyAMI
   class Lexer
-    STANZA_BREAK      = "\r\n\r\n"
-    PROMPT            = /Asterisk Call Manager\/(\d+\.\d+)\r\n/
-    KEYVALUEPAIR      = /^([[[:alnum:]]-_ ]+): *(.*)\r\n/
-    FOLLOWSDELIMITER  = /\r?\n?--END COMMAND--\r\n\r\n/
+    PROMPT            = /Asterisk Call Manager\/([0-9.]+)\r\n/
     SUCCESS           = /response: *success/i
     PONG              = /response: *pong/i
     EVENT             = /event: *(?<event_name>.*)?/i
     ERROR             = /response: *error/i
     FOLLOWS           = /response: *follows/i
-    SCANNER           = /.*?#{STANZA_BREAK}/m
     HEADER_SLICE      = /.*\r\n/
-    IMMEDIATE_RESP    = /.*/
-    CLASSIFIER        = /((?<event>#{EVENT})|(?<success>#{SUCCESS})|(?<pong>#{PONG})|(?<follows>#{FOLLOWS})|(?<error>#{ERROR})|(?<immediate>#{IMMEDIATE_RESP})\r\n)\r\n/i
+    CLASSIFIER        = /((?<event>#{EVENT})|(?<success>#{SUCCESS})|(?<pong>#{PONG})|(?<follows>#{FOLLOWS})|(?<error>#{ERROR}))\r\n/i
 
     attr_accessor :ami_version
 
@@ -21,6 +16,7 @@ module RubyAMI
       @delegate = delegate
       @buffer = String.new
       @ami_version = nil
+      reset_current_message
     end
 
     def <<(new_data)
@@ -30,74 +26,94 @@ module RubyAMI
 
     private
 
-    def parse_buffer
-      # Special case for the protocol header
-      if @buffer =~ PROMPT
-        @ami_version = $1
-        @buffer.slice! HEADER_SLICE
-      end
-
-      # We need at least one complete message before parsing
-      return unless @buffer.include?(STANZA_BREAK)
-
-      @processed = 0
-
-      response_follows_message = false
-      current_message = nil
-      @buffer.scan(SCANNER).each do |raw|
-        if response_follows_message
-          if handle_response_follows(response_follows_message, raw)
-            @processed += raw.length
-            message_received response_follows_message
-            response_follows_message = nil
-          end
-        else
-          response_follows_message = parse_message raw
-        end
-      end
-      @buffer.slice! 0, @processed
+    def reset_current_message
+      @current_msg= nil
+      @current_response_follows= false
+      @current_end_command= false
     end
 
-    def parse_message(raw)
-      return if raw.length == 0
+    def parse_buffer
+      # Special case for the protocol header
+      if @buffer.start_with?("Asterisk Call Manager") && @buffer =~ PROMPT
+        @ami_version = $1
+        @buffer.slice! HEADER_SLICE
+        reset_current_message
+      end
 
-      # Mark this message as processed, including the 4 stripped cr/lf bytes
-      @processed += raw.length
+      processed = 0
+      buffer_size = @buffer.size
 
-      match = raw.match CLASSIFIER
-
-      msg = if match[:event]
-        Event.new match[:event_name]
-      elsif match[:success] || match[:pong]
-        Response.new
-      elsif match[:follows]
-        response_follows = true
-        Response.new
-      elsif match[:error]
-        Error.new
-      elsif match[:immediate]
-        if raw.include?(':')
-          syntax_error_encountered raw.chomp(STANZA_BREAK)
-          return
+      @buffer.each_line("\r\n") do |line|
+        # do not process last line if incomplete
+        if line.size + processed == buffer_size && !line.end_with?("\r\n")
+          break
         end
-        immediate_response = true
-        Response.from_immediate_response match[:immediate]
+
+        processed+= line.size
+
+        if @current_msg.nil?
+          match = line.match CLASSIFIER
+
+          if match.nil?
+            if line == "\r\n" || line.empty?
+            elsif line.include?(':')
+              syntax_error_encountered line
+            elsif line =~ /^(.+)\r\n$/
+              immediate_msg= Response.new
+              immediate_msg.text_body = $1
+              immediate_msg
+              message_received immediate_msg
+            end
+            next
+          end
+
+          @current_msg = if match[:event]
+            Event.new match[:event_name]
+          elsif match[:success] || match[:pong]
+            Response.new
+          elsif match[:follows]
+            @current_response_follows = true
+            msg= Response.new
+            msg.text_body = String.new
+            msg
+          elsif match[:error]
+            Error.new
+          end
+
+        elsif line == "\r\n" || ( @current_end_command && line.include?("--END COMMAND--") )
+          if @current_end_command
+            @current_msg.text_body.chop!
+          end
+
+          case @current_msg
+          when Error
+            error_received @current_msg
+          else
+            message_received @current_msg
+          end
+          reset_current_message
+
+        elsif @current_end_command
+          @current_msg.text_body<< line
+
+        else
+          i= line.index(': ')
+          if i
+            line.chop!
+            key= line[0..i-1]
+            value= line[i+1..-1]
+            value.lstrip!
+            @current_msg[key]= value
+          elsif @current_response_follows
+            @current_end_command= true
+            @current_msg.text_body<< line
+          else
+            raise
+          end
+        end
       end
 
-      # Strip off the header line
-      raw.slice! HEADER_SLICE
-      raw_index= populate_message_body msg, raw
-
-      return msg if response_follows && !handle_response_follows(msg, raw[raw_index..-1])
-
-      case msg
-      when Error
-        error_received msg
-      else
-        message_received msg
-      end
-
-      nil
+      @buffer.slice! 0, processed
     end
 
     ##
@@ -125,26 +141,6 @@ module RubyAMI
     # @param [String] ignored_chunk The offending text which caused the syntax error.
     def syntax_error_encountered(ignored_chunk)
       @delegate.syntax_error_encountered ignored_chunk
-    end
-
-    # returns first char index after last match
-    def populate_message_body(obj, raw)
-      headers= raw.scan(KEYVALUEPAIR)
-      if match= $~
-        obj.merge_headers!(Hash[headers])
-        match.end(match.size - 1) + 2
-      else
-        0
-      end
-    end
-
-    def handle_response_follows(obj, raw)
-      obj.text_body ||= String.new
-      obj.text_body << raw
-      return false unless raw =~ FOLLOWSDELIMITER
-      obj.text_body.sub! FOLLOWSDELIMITER, ''
-      obj.text_body.chomp!
-      true
     end
   end
 end

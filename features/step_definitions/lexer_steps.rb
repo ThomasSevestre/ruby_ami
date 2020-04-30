@@ -30,6 +30,13 @@ Given "a normal login success with events split into two pieces" do
   @lexer << stanza[3..-1]
 end
 
+Given "a normal login success with events split into two pieces by line" do
+  stanza = fixture('login/standard/success')
+  i= stanza.index("\r\n")
+  @lexer << stanza[0..i-1]
+  @lexer << stanza[i..-1]
+end
+
 Given "a stanza break" do
   @lexer << "\r\n\r\n"
 end
