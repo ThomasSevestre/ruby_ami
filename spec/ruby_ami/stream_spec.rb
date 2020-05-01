@@ -284,7 +284,9 @@ Cause: 0
 
         let :expected_response do
           Response.new('ActionID' => RubyAMI.new_uuid, 'Message' => 'Events to follow').tap do |response|
-            response.events = expected_events
+            expected_events.each do |e|
+              response.events<< e
+            end
           end
         end
 
