@@ -42,12 +42,12 @@ module RubyAMI
       action
     end
 
-    def send_action(name, headers = {})
+    def send_action(name, headers = {}, &causal_event_callback)
       ivar= Concurrent::IVar.new
 
       EM.next_tick do
         begin
-          async_send_action(name, headers) do |response|
+          async_send_action(name, headers, causal_event_callback) do |response|
             ivar.set(response)
           end
         rescue => e
@@ -64,10 +64,10 @@ module RubyAMI
       end
     end
 
-    def fiber_send_action(name, headers = {})
+    def fiber_send_action(name, headers = {}, &causal_event_callback)
       fiber= Fiber.current
 
-      async_send_action(name, headers) do |response|
+      async_send_action(name, headers, causal_event_callback) do |response|
         fiber.resume(response)
       end
 

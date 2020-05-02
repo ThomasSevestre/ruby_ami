@@ -318,6 +318,52 @@ Cause: 0
           response.should == expected_response
         end
       end
+
+      describe 'for a causal action with block' do
+        let :expected_events do
+          [
+            Event.new('PeerEntry', 'ActionID' => RubyAMI.new_uuid, 'Channeltype' => 'SIP', 'ObjectName' => 'usera'),
+            Event.new('PeerlistComplete', 'ActionID' => RubyAMI.new_uuid, 'EventList' => 'Complete', 'ListItems' => '2')
+          ]
+        end
+
+        let :expected_response do
+          Response.new('ActionID' => RubyAMI.new_uuid, 'Message' => 'Events to follow')
+        end
+
+        it "should return the response with events" do
+          response = nil
+          events= []
+          mocked_server(1, lambda do
+            EM::defer do
+              response = @stream.send_action 'sippeers' do |event|
+                events<< event
+              end
+            end
+          end) do |val, server|
+            server.send_data <<~EVENT
+              Response: Success
+              ActionID: #{RubyAMI.new_uuid}
+              Message: Events to follow
+
+              Event: PeerEntry
+              ActionID: #{RubyAMI.new_uuid}
+              Channeltype: SIP
+              ObjectName: usera
+
+              Event: PeerlistComplete
+              EventList: Complete
+              ListItems: 2
+              ActionID: #{RubyAMI.new_uuid}
+
+            EVENT
+          end
+
+          response.should == expected_response
+          response.events.should == []
+          events.should == expected_events
+        end
+      end
     end
 
     it 'puts itself in the stopped state and fires a disconnected event when unbound' do

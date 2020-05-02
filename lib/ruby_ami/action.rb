@@ -18,13 +18,14 @@ module RubyAMI
       confbridgelistrooms
     )
 
-    def initialize(name, headers = {}, &block)
+    def initialize(name, headers = {}, causal_event_callback = nil, &block)
       @name       = name.to_s.downcase.freeze
       @headers    = headers.freeze
       @action_id  = RubyAMI.new_uuid
       @response   = nil
       @complete   = false
       @callback   = block
+      @causal_event_callback = causal_event_callback
     end
 
     def complete?
@@ -44,7 +45,10 @@ module RubyAMI
     # @return [String] the downcase()'d name of the event name for which to wait
     #
     def has_causal_events?
-      CAUSAL_EVENT_NAMES.include? name
+      if @has_causal_events.nil?
+        @has_causal_events= CAUSAL_EVENT_NAMES.include?(name)
+      end
+      @has_causal_events
     end
 
     ##
@@ -54,14 +58,15 @@ module RubyAMI
     # @return [String] The corresponding event name which signals the completion of the causal event sequence.
     #
     def causal_event_terminator_name
-      return unless has_causal_events?
-      case name
-      when "sippeers", "iaxpeers"
-        "peerlistcomplete"
-      when "konferencelist"
-        "conferencelistcomplete"
-      else
-        "#{name}complete"
+      if has_causal_events?
+        @causal_event_terminator_name||= case name
+        when "sippeers", "iaxpeers"
+          "peerlistcomplete"
+        when "konferencelist"
+          "conferencelistcomplete"
+        else
+          "#{name}complete"
+        end
       end
     end
 
@@ -87,7 +92,11 @@ module RubyAMI
         complete!
       when Event
         raise 'This action should not trigger events. Maybe it is now a causal action? This is most likely a bug in RubyAMI' unless has_causal_events?
-        response.events << message
+        if @causal_event_callback
+          @causal_event_callback.call(message)
+        else
+          response.events << message
+        end
         complete! if message.name.downcase == causal_event_terminator_name
       when Response
         self.response = message
