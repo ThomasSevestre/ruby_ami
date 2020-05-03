@@ -36,7 +36,7 @@ module RubyAMI
 
     def async_send_action(*args, &block)
       action = Action.new *args, &block
-      logger.trace "[SEND] #{action.to_s}"
+      # puts "[SEND] #{action.to_s}"
       register_sent_action action
       send_data action.to_s
       action
@@ -96,7 +96,7 @@ module RubyAMI
       while !@custom_event_queue.empty?
         fire_event @custom_event_queue.pop
       end
-      logger.trace "[RECV] #{data}"
+      # puts "[RECV] #{data}"
       @lexer << data
     end
 
@@ -110,7 +110,7 @@ module RubyAMI
     ####################
     # lexer callbacks
     def message_received(message)
-      logger.trace "[RECV] #{message.inspect}"
+      # puts "[RECV] #{message.inspect}"
       case message
       when Event
         action = causal_action_for_event message
