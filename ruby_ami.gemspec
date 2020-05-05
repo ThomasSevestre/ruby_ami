@@ -11,8 +11,6 @@ Gem::Specification.new do |s|
   s.summary     = %q{Futzing with AMI so you don't have to}
   s.description = %q{A Ruby client library for the Asterisk Management Interface built on Celluloid IO.}
 
-  s.rubyforge_project = "ruby_ami"
-
   s.files         = `git ls-files`.split("\n") << 'lib/ruby_ami/lexer.rb'
   s.test_files    = `git ls-files -- {test,spec,features}/*`.split("\n")
   s.executables   = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
