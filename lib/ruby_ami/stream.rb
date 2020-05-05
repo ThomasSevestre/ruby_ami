@@ -23,15 +23,10 @@ module RubyAMI
       @lexer = Lexer.new self
       @sent_actions   = {}
       @causal_actions = {}
-      @custom_event_queue= Queue.new
     end
 
     [:started, :stopped].each do |state|
       define_method("#{state}?") { @state == state }
-    end
-
-    def add_custom_event(event)
-      @custom_event_queue<< event
     end
 
     def async_send_action(*args, &block)
@@ -93,9 +88,6 @@ module RubyAMI
     end
 
     def receive_data(data)
-      while !@custom_event_queue.empty?
-        fire_event @custom_event_queue.pop
-      end
       # puts "[RECV] #{data}"
       @lexer << data
     end
