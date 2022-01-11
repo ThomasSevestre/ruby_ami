@@ -2,8 +2,15 @@
 module RubyAMI
   class Stream < EventMachine::Connection
     class ConnectionStatus
+      attr_reader :ip, :port
+
+      def initialize(ip, port)
+        @ip= ip
+        @port= port
+      end
+
       def ==(other)
-        other.is_a? self.class
+        other.is_a?(self.class) && other.ip == @ip && other.port == @port
       end
     end
 
@@ -79,12 +86,13 @@ module RubyAMI
     # EM callbacks
     def post_init
       @state = :started
-      fire_event Connected.new
-      login @username, @password if @username && @password
     end
 
     def connection_completed
       post_init unless started?
+      @connected_port, @connected_ip = Socket.unpack_sockaddr_in(self.get_peername)
+      fire_event Connected.new(@connected_ip, @connected_port)
+      login @username, @password if @username && @password
     end
 
     def receive_data(data)
@@ -95,7 +103,7 @@ module RubyAMI
     def unbind
       logger.debug "Finalizing stream"
       @state = :stopped
-      fire_event Disconnected.new
+      fire_event Disconnected.new(@connected_ip, @connected_port)
       @unbind_callback&.call(self)
     end
 

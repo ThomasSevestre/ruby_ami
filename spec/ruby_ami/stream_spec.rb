@@ -48,11 +48,11 @@ module RubyAMI
     end
 
     def expect_connected_event
-      should_receive(:message_received).with Stream::Connected.new
+      should_receive(:message_received).with Stream::Connected.new("127.0.0.1", server_port)
     end
 
     def expect_disconnected_event
-      should_receive(:message_received).with Stream::Disconnected.new
+      should_receive(:message_received).with Stream::Disconnected.new("127.0.0.1", server_port)
     end
 
     before { @sequence = 1 }
@@ -206,9 +206,9 @@ Cause: 0
       end
 
       client_messages.should be == [
-        Stream::Connected.new,
+        Stream::Connected.new("127.0.0.1", server_port),
         Event.new('Hangup', 'Channel' => 'SIP/101-3f3f', 'Uniqueid' => '1094154427.10', 'Cause' => '0'),
-        Stream::Disconnected.new
+        Stream::Disconnected.new("127.0.0.1", server_port)
       ]
     end
 
