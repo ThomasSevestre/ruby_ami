@@ -16,8 +16,8 @@ Given "a new lexer" do
   end
 end
 
-Given "a version header for AMI $version" do |version|
-  @lexer << "Asterisk Call Manager/1.0\r\n"
+Given /^a version header for AMI ([0-9.]+)$/ do |version|
+  @lexer << "Asterisk Call Manager/#{version}\r\n"
 end
 
 Given "a normal login success with events" do
@@ -41,7 +41,7 @@ Given "a stanza break" do
   @lexer << "\r\n\r\n"
 end
 
-Given "a multi-line Response:Follows body of $method_name" do |method_name|
+Given /^a multi-line Response:Follows body of ([a-zA-Z_]+)$/ do |method_name|
   multi_line_response_body = send(:follows_body_text, method_name)
 
   multi_line_response = format_newlines(<<-RESPONSE + "\r\n") % multi_line_response_body
@@ -63,7 +63,7 @@ System uptime: 46 minutes, 30 seconds\r
   @lexer << uptime_response
 end
 
-Given "syntactically invalid $name" do |name|
+Given /^syntactically invalid (.*)$/ do |name|
   @lexer << send(:syntax_error_data, name)
 end
 
@@ -83,23 +83,23 @@ Given /^a custom stanza named "(\w+)"$/ do |name|
   @custom_stanzas[name] = "Response: Success\r\n"
 end
 
-Given 'the custom stanza named "$name" has key "$key" with value "$value"' do |name,key,value|
+Given /^the custom stanza named "([a-z]+)" has key "([a-zA-Z0-9_ -]+)" with value "(.*)"$/ do |name,key,value|
   @custom_stanzas[name] << "#{key}: #{value}\r\n"
 end
 
-Given 'an AMI error whose message is "$message"' do |message|
+Given /^an AMI error whose message is "(.*)"$/ do |message|
   @lexer << "Response: Error\r\nMessage: #{message}\r\n\r\n"
 end
 
-Given 'an immediate response with text "$text"' do |text|
+Given /^an immediate response with text "(.*)"$/ do |text|
   @lexer << "#{text}\r\n\r\n"
 end
 
-Given 'a custom event with name "$event_name" identified by "$identifier"' do |event_name, identifer|
+Given /^a custom event with name "(\w+)" identified by "(\w+)"$/ do |event_name, identifer|
   @custom_events[identifer] = {:Event => event_name }
 end
 
-Given 'a custom header for event identified by "$identifier" whose key is "$key" and value is "$value"' do |identifier, key, value|
+Given /^a custom header for event identified by "([a-zA-Z_]+)" whose key is "([a-zA-Z_]+)" and value is "(.*)"$/ do |identifier, key, value|
   @custom_events[identifier][key] = value
 end
 
@@ -115,11 +115,11 @@ end
 #### WHEN
 ########################################
 
-When 'the custom stanza named "$name" is added to the buffer' do |name|
+When /^the custom stanza named "([a-z]+)" is added to the buffer$/ do |name|
   @lexer << (@custom_stanzas[name] + "\r\n")
 end
 
-When 'the custom event identified by "$identifier" is added to the buffer' do |identifier|
+When /^the custom event identified by "([a-zA-Z_]+)" is added to the buffer$/ do |identifier|
   custom_event = @custom_events[identifier].clone
   event_name = custom_event.delete :Event
   stringified_event = "Event: #{event_name}\r\n"
@@ -145,7 +145,7 @@ Then /^the protocol should have lexed with (\d+) syntax errors?$/ do |number|
   @lexer.syntax_errors.size.should == number.to_i
 end
 
-Then "the syntax error fixture named $name should have been encountered" do |name|
+Then /^the syntax error fixture named (\w+) should have been encountered$/ do |name|
   irregularity = send(:syntax_error_data, name)
   @lexer.syntax_errors.find { |error| error == irregularity }.should_not be_nil
 end
@@ -162,8 +162,8 @@ Then /^the 'follows' body of (\d+) messages? received should equal (\w+)$/ do |n
   end.size.should == number.to_i
 end
 
-Then "the version should be set to $version" do |version|
-  @lexer.ami_version.should eql(version)
+Then /^the version should be set to ([0-9.]+)$/ do |version|
+  @lexer.ami_version.should == version
 end
 
 Then /^the ([\w\d]*) message received should have a key "([^\"]*)" with value "([^\"]*)"$/ do |ordered,key,value|
@@ -171,17 +171,17 @@ Then /^the ([\w\d]*) message received should have a key "([^\"]*)" with value "(
   @lexer.received_messages[ordered][key].should eql(value)
 end
 
-Then "$number AMI error should have been received" do |number|
+Then /^([0-9]+) AMI error should have been received$/ do |number|
   @lexer.ami_errors.size.should equal(number.to_i)
 end
 
-Then 'the $order AMI error should have the message "$message"' do |order, message|
+Then /^the ([0-9a-z]+) AMI error should have the message "(.*)"$/ do |order, message|
   order = order[/^(\d+)\w+$/, 1].to_i - 1
   @lexer.ami_errors[order].should be_kind_of(RubyAMI::Error)
   @lexer.ami_errors[order].message.should eql(message)
 end
 
-Then '$number message should be an immediate response with text "$text"' do |number, text|
+Then /^([0-9]+) message should be an immediate response with text "(.*)"$/ do |number, text|
   matching_immediate_responses = @lexer.received_messages.select do |response|
     response.kind_of?(RubyAMI::Response) && response.text_body == text
   end
@@ -189,20 +189,20 @@ Then '$number message should be an immediate response with text "$text"' do |num
   matching_immediate_responses.first["ActionID"].should eql(nil)
 end
 
-Then 'the $order event should have the name "$name"' do |order, name|
+Then /^the ([0-9a-z]+) event should have the name "(.*)"$/ do |order, name|
   order = order[/^(\d+)\w+$/, 1].to_i - 1
   @lexer.received_messages.select do |response|
     response.kind_of?(RubyAMI::Event)
   end[order].name.should eql(name)
 end
 
-Then '$number event should have been received' do |number|
+Then /^([0-9]+) event should have been received$/ do |number|
   @lexer.received_messages.select do |response|
     response.kind_of?(RubyAMI::Event)
   end.size.should equal(number.to_i)
 end
 
-Then 'the $order event should have key "$key" with value "$value"' do |order, key, value|
+Then /^the ([0-9a-z]+) event should have key "(\w+)" with value "(.*)"$/ do |order, key, value|
   order = order[/^(\d+)\w+$/, 1].to_i - 1
   @lexer.received_messages.select do |response|
     response.kind_of?(RubyAMI::Event)
