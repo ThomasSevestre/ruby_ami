@@ -3,10 +3,6 @@ require "concurrent/ivar"
 
 require "logger"
 
-class Logger
-  alias :trace :debug
-end
-
 module RubyAMI
   def self.new_uuid
     SecureRandom.uuid
