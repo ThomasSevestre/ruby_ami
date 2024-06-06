@@ -20,11 +20,11 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency %q<concurrent-ruby>, ["~> 1.1.6"]
 
   s.add_development_dependency %q<celluloid-io>, ["0.17.3"]
-  s.add_development_dependency %q<bundler>, ["~> 1.0"]
-  s.add_development_dependency %q<rspec>, ["~> 2.5"]
-  s.add_development_dependency %q<cucumber>, [">= 0"]
-  s.add_development_dependency %q<yard>, ["~> 0.6"]
-  s.add_development_dependency %q<rake>, [">= 0"]
+  s.add_development_dependency %q<bundler>
+  s.add_development_dependency %q<rspec>
+  s.add_development_dependency %q<cucumber>
+  s.add_development_dependency %q<yard>
+  s.add_development_dependency %q<rake>
   s.add_development_dependency %q<guard-rspec>
   s.add_development_dependency %q<guard-shell>
   s.add_development_dependency %q<guard-cucumber>
