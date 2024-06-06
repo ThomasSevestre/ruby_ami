@@ -22,7 +22,7 @@ module RubyAMI
 
     def mocked_server(times = nil, fake_client = nil, &block)
       mock_target = MockServer.new
-      mock_target.should_receive(:receive_data).send(*(times ? [:exactly, times] : [:at_least, 1])).with &block
+      mock_target.should_receive(:receive_data).send(*(times ? [:exactly, times] : [:at_least, 1])).with any_args, &block
 
       s = ServerMock.new '127.0.0.1', server_port, mock_target
 
@@ -61,7 +61,7 @@ module RubyAMI
       it "should be started" do
         expect_connected_event
         expect_disconnected_event
-        mocked_server 0, -> { @stream.started?.should be_true }
+        mocked_server 0, -> { @stream.started?.should == true }
       end
 
       it "can send an action" do

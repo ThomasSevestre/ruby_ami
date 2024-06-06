@@ -16,12 +16,16 @@ module RubyAMI
 
     describe "SIPPeers actions" do
       subject { Action.new('SIPPeers') }
-      its(:has_causal_events?) { should be true }
+      it "should has causal events" do
+        subject.has_causal_events?.should == true
+      end
     end
 
     describe "the ParkedCalls terminator event" do
       subject { Action.new('ParkedCalls') }
-      its(:causal_event_terminator_name) { should == "parkedcallscomplete" }
+      it "should be parkedcallscomplete" do
+        subject.causal_event_terminator_name.should == "parkedcallscomplete"
+      end
     end
 
     it "should properly convert itself into a String when additional headers are given" do
@@ -108,7 +112,9 @@ module RubyAMI
 
           it { should be_complete }
 
-          its(:response) { should be response }
+          it "should have a response" do
+            subject.response.should be response
+          end
         end
       end
     end

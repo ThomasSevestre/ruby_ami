@@ -9,12 +9,16 @@ module RubyAMI
 
     subject { described_class.new environment_string }
 
-    its(:to_s) { should == environment_string }
-    its(:to_s) { should_not be environment_string }
+    it "implements to_s" do
+      subject.to_s.should == environment_string
+    end
+    it "to_s duplicates the string" do
+      subject.to_s.should_not be environment_string
+    end
 
     describe 'retrieving a hash representation' do
-      its(:to_hash) do
-        should == {
+      it "implements to_s" do
+        subject.to_hash.should == {
           :agi_request      => 'async',
           :agi_channel      => 'SIP/1234-00000000',
           :agi_language     => 'en',
