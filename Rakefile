@@ -9,9 +9,7 @@ end
 
 require 'cucumber'
 require 'cucumber/rake/task'
-Cucumber::Rake::Task.new(:features) do |t|
-  t.cucumber_opts = %w{--tags ~@jruby} unless defined?(JRUBY_VERSION)
-end
+Cucumber::Rake::Task.new(:features)
 
 Cucumber::Rake::Task.new(:wip) do |t|
   t.cucumber_opts = %w{-p wip}

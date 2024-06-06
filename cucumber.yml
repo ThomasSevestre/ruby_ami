@@ -1,2 +1,2 @@
-default: --tags ~@wip
+default: --tags 'not @wip' --publish-quiet
 wip: --wip --tags @wip
