@@ -5,7 +5,7 @@ require 'ruby_ami'
 %w{
   celluloid/io
 }.each { |f| require f }
-
+Celluloid.boot
 
 Dir[File.dirname(__FILE__) + "/support/**/*.rb"].each {|f| require f}
 
