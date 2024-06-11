@@ -38,13 +38,15 @@ module RubyAMI
 
     # Must be called in EM main thread.
     # This can be done by wrapping with EM.next_tick
-    def async_send_action(*args, &block)
-      action = Action.new *args, &block
-      # puts "[SEND] #{action.to_s}"
-      @sent_actions[action.action_id] = action
-      if action.has_causal_events?
-        @causal_actions[action.action_id] = action
+    def async_send_action(name, headers = {}, causal_event_callback = nil, &block)
+      action = Action.new(name, headers, causal_event_callback, &block)
+      if causal_event_callback || block
+        @sent_actions[action.action_id] = action
+        if action.has_causal_events?
+          @causal_actions[action.action_id] = action
+        end
       end
+      # puts "[SEND] #{action.to_s}"
       send_data action.to_s
       action
     end
@@ -127,8 +129,11 @@ module RubyAMI
         end
       when Response, Error
         action = @sent_actions.delete(message.action_id)
-        raise "Received an AMI response with an unrecognized ActionID! #{message.inspect}" unless action
-        action << message
+        if action
+          action << message
+        else
+          # puts "Received an AMI response with an unrecognized ActionID! #{message.inspect}" unless action
+        end
       end
     end
 
