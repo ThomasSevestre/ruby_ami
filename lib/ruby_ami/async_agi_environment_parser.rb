@@ -18,6 +18,9 @@ module RubyAMI
         hash[element_0.to_sym] = CGI.unescape(element_1 || '')
       end
       hash
+    rescue
+      puts "RubyAMI::AsyncAGIEnvironmentParser failed to parse event :\n#{@environment_string.inspect}"
+      raise
     end
 
     def to_s
