@@ -108,7 +108,24 @@ module RubyAMI
             @current_end_command= true
             @current_msg.text_body<< line
           else
-            raise
+            # unsuported use case
+            puts <<~EOS
+              current_msg: #{@current_msg.inspect}
+              current_response_follows: #{@current_response_follows.inspect}
+              current_end_command: #{@current_end_command.inspect}
+              line: #{line.inspect}
+              buffer: #{@buffer.inspect}
+            EOS
+
+            if defined?(Sentry)
+              begin
+                raise
+              rescue => e
+                Sentry.capture_exception(e, level: "error")
+              end
+            end
+
+            reset_current_message
           end
         end
       end

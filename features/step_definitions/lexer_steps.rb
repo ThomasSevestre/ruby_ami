@@ -111,6 +111,15 @@ Given "a follows packet with a colon in it" do
   @lexer << follows_body_text("with_colon")
 end
 
+Given "an invalid event" do
+  stringified_event = "Event: InvalidEvent\r\n"
+  stringified_event << "Header: test\r\n"
+  stringified_event << "invalid line without semi column"
+  stringified_event << "\r\n"
+  @lexer << stringified_event
+end
+
+
 ########################################
 #### WHEN
 ########################################

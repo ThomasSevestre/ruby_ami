@@ -219,6 +219,19 @@ Feature: Lexing AMI
     And syntactically invalid immediate_packet_with_colon
     And a stanza break
 
-    Then 0 messages should have been received
+    And a custom event with name "NewChannelEvent" identified by "this_event"
+    When the custom event identified by "this_event" is added to the buffer
+
+    Then 1 messages should have been received
     And the protocol should have lexed with 1 syntax error
     And the syntax error fixture named immediate_packet_with_colon should have been encountered
+
+  Scenario: Recovering from a syntax error
+    Given a new lexer
+    And an invalid event
+    And a stanza break
+    And a custom event with name "NewChannelEvent" identified by "this_event"
+    When the custom event identified by "this_event" is added to the buffer
+
+    Then 1 messages should have been received
+
