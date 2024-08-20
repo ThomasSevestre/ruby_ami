@@ -1,5 +1,6 @@
 require "eventmachine"
 require "concurrent/ivar"
+require "concurrent/utility/monotonic_time"
 
 require "logger"
 

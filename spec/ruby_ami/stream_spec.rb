@@ -236,6 +236,18 @@ Cause: 0
         response.should == Response.new('ActionID' => RubyAMI.new_uuid, 'Message' => 'Recording started')
       end
 
+      it 'should handle timeout option' do
+        send_action = lambda do
+          EM::defer do
+            expect { @stream.send_action 'status', {}, 0.1 }.to raise_error(RubyAMI::TimeoutError)
+            @stream.stopped?.should be false
+          end
+        end
+        mocked_server(1, send_action) do |val, server|
+          sleep 0.2
+        end
+      end
+
       describe 'when it is an error' do
         it 'should be raised by #send_action, but not kill the stream' do
           send_action = lambda do

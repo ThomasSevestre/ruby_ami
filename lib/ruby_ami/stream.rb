@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 module RubyAMI
+  TimeoutError = Class.new(RuntimeError)
+
   class Stream < EventMachine::Connection
     class ConnectionStatus
       attr_reader :ip, :port
@@ -51,25 +53,31 @@ module RubyAMI
       action
     end
 
-    def send_action(name, headers = {}, &causal_event_callback)
+    def send_action(name, headers = {}, timeout = nil, &causal_event_callback)
       ivar= Concurrent::IVar.new
 
       EM.next_tick do
         begin
           async_send_action(name, headers, causal_event_callback) do |response|
-            ivar.set(response)
+            if response.is_a?(Exception)
+              ivar.fail(response)
+            else
+              ivar.set(response)
+            end
           end
         rescue => e
-          ivar.set(e)
+          ivar.fail(e)
         end
       end
 
-      ivar.wait
+      val = ivar.wait(timeout)
 
-      if ivar.value.is_a?(Exception)
-        raise ivar.value
+      if val.rejected?
+        raise val.reason
+      elsif val.pending?
+        raise RubyAMI::TimeoutError
       else
-        ivar.value
+        val.value
       end
     end
 
