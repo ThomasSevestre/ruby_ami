@@ -3,20 +3,35 @@ module RubyAMI
   class Action
     attr_reader :name, :headers, :action_id, :response
 
-    CAUSAL_EVENT_NAMES = %w(
-      queuestatus
-      sippeers
-      iaxpeers
-      parkedcalls
-      dahdishowchannels
-      coreshowchannels
-      dbget
-      status
-      agents
-      konferencelist
-      confbridgelist
-      confbridgelistrooms
-    )
+    CAUSAL_EVENT_NAMES = {
+      "queuestatus" => nil,
+      "sippeers" => "peerlistcomplete",
+      "iaxpeers" => "peerlistcomplete",
+      "parkedcalls" => nil,
+      "dahdishowchannels" => nil,
+      "coreshowchannels" => nil,
+      "dbget" => nil,
+      "status" => nil,
+      "agents" => nil,
+      "konferencelist" => "conferencelistcomplete",
+      "confbridgelist" => nil,
+      "confbridgelistrooms" => nil,
+      "pjsipshowaors" => "aorlistcomplete",
+      "pjsipshowauths" => "authlistcomplete",
+      "pjsipshowcontacts" => "contactlistcomplete",
+      "pjsipshowendpoints" => "endpointlistcomplete",
+      "pjsipshowregistrationinboundcontactstatuses" => "contactstatusdetailcomplete",
+      "pjsipshowregistrationsinbound" => "inboundregistrationdetailcomplete",
+      "pjsipshowresourcelists" => "resourcelistdetailcomplete",
+      "pjsipshowsubscriptionsinbound" => "inboundsubscriptiondetailcomplete",
+      "pjsipshowsubscriptionsoutbound" => "outboundsubscriptiondetailcomplete",
+    }
+    CAUSAL_EVENT_NAMES.each do |name, causal_event_terminator_name|
+      if causal_event_terminator_name.nil?
+        CAUSAL_EVENT_NAMES[name] = "#{name}complete"
+      end
+    end
+    CAUSAL_EVENT_NAMES.freeze
 
     def initialize(name, headers = {}, causal_event_callback = nil, &block)
       @name       = name.to_s.downcase.freeze
@@ -46,7 +61,7 @@ module RubyAMI
     #
     def has_causal_events?
       if @has_causal_events.nil?
-        @has_causal_events= CAUSAL_EVENT_NAMES.include?(name)
+        @has_causal_events= CAUSAL_EVENT_NAMES.key?(name)
       end
       @has_causal_events
     end
@@ -59,14 +74,7 @@ module RubyAMI
     #
     def causal_event_terminator_name
       if has_causal_events?
-        @causal_event_terminator_name||= case name
-        when "sippeers", "iaxpeers"
-          "peerlistcomplete"
-        when "konferencelist"
-          "conferencelistcomplete"
-        else
-          "#{name}complete"
-        end
+        @causal_event_terminator_name ||= CAUSAL_EVENT_NAMES[name]
       end
     end
 
