@@ -25,6 +25,7 @@ module RubyAMI
       "pjsipshowresourcelists" => "resourcelistdetailcomplete",
       "pjsipshowsubscriptionsinbound" => "inboundsubscriptiondetailcomplete",
       "pjsipshowsubscriptionsoutbound" => "outboundsubscriptiondetailcomplete",
+      "endpointlist" => nil,
     }
     CAUSAL_EVENT_NAMES.each do |name, causal_event_terminator_name|
       if causal_event_terminator_name.nil?
