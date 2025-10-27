@@ -29,7 +29,6 @@ module RubyAMI
       @logger = logger
 
       logger.debug "Starting up..."
-      @lexer = Lexer.new self
       @sent_actions   = {}
       @causal_actions = {}
     end
@@ -101,6 +100,7 @@ module RubyAMI
     # EM callbacks
     def post_init
       @state = :started
+      @lexer = Lexer.new self
     end
 
     def connection_completed
