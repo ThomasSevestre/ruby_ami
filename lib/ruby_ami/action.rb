@@ -38,6 +38,7 @@ module RubyAMI
       @name       = name.to_s.downcase.freeze
       @headers    = headers.freeze
       @action_id  = RubyAMI.new_uuid
+      @action_id  << "-no-callback" if block.nil?
       @response   = nil
       @complete   = false
       @callback   = block
