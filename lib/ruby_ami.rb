@@ -6,7 +6,7 @@ require "logger"
 
 module RubyAMI
   def self.new_uuid
-    SecureRandom.uuid
+    "#{SecureRandom.hex(8)}-#{Process.clock_gettime(:CLOCK_MONOTONIC, :millisecond)}"
   end
 end
 
