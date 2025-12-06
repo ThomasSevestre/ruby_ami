@@ -53,11 +53,11 @@ module RubyAMI
     end
 
     def send_action(name, headers = {}, timeout = nil, &causal_event_callback)
-      ivar= Concurrent::IVar.new
-
+      ivar = Concurrent::IVar.new
+      action = nil
       EM.next_tick do
         begin
-          async_send_action(name, headers, causal_event_callback) do |response|
+          action = async_send_action(name, headers, causal_event_callback) do |response|
             if response.is_a?(Exception)
               ivar.fail(response)
             else
@@ -74,6 +74,9 @@ module RubyAMI
       if val.rejected?
         raise val.reason
       elsif val.pending?
+        EM.next_tick do
+          @sent_actions.delete(action.action_id)
+        end
         raise RubyAMI::TimeoutError
       else
         val.value
