@@ -76,6 +76,7 @@ module RubyAMI
       elsif val.pending?
         EM.next_tick do
           @sent_actions.delete(action.action_id)
+          @causal_actions.delete(action.action_id)
         end
         raise RubyAMI::TimeoutError
       else
