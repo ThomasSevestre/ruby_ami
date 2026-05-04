@@ -130,6 +130,10 @@ module RubyAMI
         end
       end
 
+    rescue
+      reset_current_message
+      raise
+    ensure
       @buffer.slice! 0, processed
     end
 
@@ -161,4 +165,3 @@ module RubyAMI
     end
   end
 end
-
