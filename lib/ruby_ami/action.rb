@@ -104,7 +104,7 @@ module RubyAMI
         raise 'This action should not trigger events. Maybe it is now a causal action? This is most likely a bug in RubyAMI' unless has_causal_events?
         if @causal_event_callback
           @causal_event_callback.call(message)
-        else
+        elsif response
           response.events << message
         end
         complete! if message.name.downcase == causal_event_terminator_name
