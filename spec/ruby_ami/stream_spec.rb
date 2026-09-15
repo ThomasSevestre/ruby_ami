@@ -136,7 +136,7 @@ module RubyAMI
         end
       end
 
-      it "can process a Command action response" do
+      it "can process a Command action with several Output lines" do
         action_id = RubyAMI.new_uuid
         response = nil
         mocked_server(1, lambda do
@@ -156,6 +156,7 @@ module RubyAMI
             ActionID: #{action_id}
             Message: Command output follows
             Output: Asterisk 20.5.0 built by root @ build on a x86_64
+            Output: running Linux on 2024-01-15 10:00:00 UTC
 
           EVENT
         end
@@ -163,7 +164,7 @@ module RubyAMI
         response.should == Response.new(
           'ActionID' => action_id,
           'Message' => 'Command output follows',
-          'Output' => 'Asterisk 20.5.0 built by root @ build on a x86_64'
+          'Output' => "Asterisk 20.5.0 built by root @ build on a x86_64\nrunning Linux on 2024-01-15 10:00:00 UTC"
         )
       end
 
@@ -263,6 +264,47 @@ Cause: 0
               Response: Error
               ActionID: #{RubyAMI.new_uuid}
               Message: Action failed
+
+            EVENT
+          end
+        end
+
+        it 'carries every Output line of a failed Command action in the message' do
+          send_action = lambda do
+            EM::defer do
+              error = nil
+              begin
+                @stream.send_action 'Command', 'Command' => 'devstate change Custom:s1234'
+              rescue RubyAMI::Error => e
+                error = e
+              end
+
+              # the lexer strips the leading whitespace of header values
+              error.message.should == <<~MSG.chomp
+                Command output follows: Usage: devstate change <device> <state>
+                Change a custom device to a new state.
+                The possible values for the state are:
+                NOT_INUSE | INUSE | BUSY | INVALID | UNAVAILABLE | RINGING | RINGINUSE | ONHOLD
+              MSG
+              error['Output'].should == <<~OUT.chomp
+                Usage: devstate change <device> <state>
+                Change a custom device to a new state.
+                The possible values for the state are:
+                NOT_INUSE | INUSE | BUSY | INVALID | UNAVAILABLE | RINGING | RINGINUSE | ONHOLD
+              OUT
+              @stream.stopped?.should be false
+            end
+          end
+
+          mocked_server(1, send_action) do |val, server|
+            server.send_data <<~EVENT
+              Response: Error
+              ActionID: #{RubyAMI.new_uuid}
+              Message: Command output follows
+              Output: Usage: devstate change <device> <state>
+              Output:        Change a custom device to a new state.
+              Output:        The possible values for the state are:
+              Output: NOT_INUSE | INUSE | BUSY | INVALID | UNAVAILABLE | RINGING | RINGINUSE | ONHOLD
 
             EVENT
           end

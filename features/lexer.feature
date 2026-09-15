@@ -62,8 +62,47 @@ Feature: Lexing AMI
 
     Then the protocol should have lexed without syntax errors
     And 1 AMI error should have been received
-    And the 1st AMI error should have the message "Command output follows"
+    And the 1st AMI error should have the message "Command output follows: Unable to retrieve endpoint 1234"
     And the 1st AMI error should have a key "Output" with value "Unable to retrieve endpoint 1234"
+
+  Scenario: Lexing a Command action response with several Output lines
+    Given a new lexer
+    And a Command action Success response with Output lines:
+      """
+      Channel              Location             State   Application(Data)
+      0 active channels
+      0 active calls
+      """
+
+    Then the protocol should have lexed without syntax errors
+    And 1 message should have been received
+    And the first message received should have a key "Output" with value:
+      """
+      Channel              Location             State   Application(Data)
+      0 active channels
+      0 active calls
+      """
+
+  Scenario: Lexing a failed Command action response with several Output lines
+    Given a new lexer
+    And a Command action Error response with Output lines:
+      """
+      Usage: devstate change <device> <state>
+      Change a custom device to a new state.
+      """
+
+    Then the protocol should have lexed without syntax errors
+    And 1 AMI error should have been received
+    And the 1st AMI error should have the message:
+      """
+      Command output follows: Usage: devstate change <device> <state>
+      Change a custom device to a new state.
+      """
+    And the 1st AMI error should have a key "Output" with value:
+      """
+      Usage: devstate change <device> <state>
+      Change a custom device to a new state.
+      """
 
   @wip
   Scenario: Lexing an immediate response with a colon in it.

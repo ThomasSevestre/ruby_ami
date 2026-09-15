@@ -172,6 +172,22 @@ Then /^the ([0-9a-z]+) AMI error should have a key "([^\"]*)" with value "([^\"]
   @lexer.ami_errors[order][key].should eql(value)
 end
 
+# multi-line variants, the value is given as a doc string
+Then /^the ([\w\d]*) message received should have a key "([^\"]*)" with value:$/ do |ordered, key, value|
+  ordered = ordered[/^(\d+)\w+$/, 1].to_i - 1
+  @lexer.received_messages[ordered][key].should eql(value)
+end
+
+Then /^the ([0-9a-z]+) AMI error should have the message:$/ do |order, message|
+  order = order[/^(\d+)\w+$/, 1].to_i - 1
+  @lexer.ami_errors[order].message.should eql(message)
+end
+
+Then /^the ([0-9a-z]+) AMI error should have a key "([^\"]*)" with value:$/ do |order, key, value|
+  order = order[/^(\d+)\w+$/, 1].to_i - 1
+  @lexer.ami_errors[order][key].should eql(value)
+end
+
 Then /^([0-9]+) message should be an immediate response with text "(.*)"$/ do |number, text|
   matching_immediate_responses = @lexer.received_messages.select do |response|
     response.kind_of?(RubyAMI::Response) && response.text_body == text

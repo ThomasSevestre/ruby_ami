@@ -3,6 +3,26 @@ require 'spec_helper'
 
 module RubyAMI
   describe Response do
+    describe "#[]=" do
+      it "joins repeated Output headers" do
+        response = Response.new
+        response['Message'] = 'Command output follows'
+        response['Output'] = 'first line'
+        response['Output'] = 'second line'
+
+        response['Output'].should == "first line\nsecond line"
+        response['Message'].should == 'Command output follows'
+      end
+
+      it "overwrites other repeated headers" do
+        response = Response.new
+        response['Message'] = 'first'
+        response['Message'] = 'second'
+
+        response['Message'].should == 'second'
+      end
+    end
+
     describe "equality" do
       context "with the same headers" do
         let :event1 do

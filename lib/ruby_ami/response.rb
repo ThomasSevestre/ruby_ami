@@ -22,8 +22,14 @@ module RubyAMI
       @headers[arg]
     end
 
+    # The Command action answers with one "Output:" header per CLI line,
+    # repeated Output keys are joined so no line is lost.
     def []=(key,value)
-      @headers[key] = value
+      if key == 'Output' && @headers.key?(key)
+        @headers[key] = "#{@headers[key]}\n#{value}"
+      else
+        @headers[key] = value
+      end
     end
 
     def action_id
