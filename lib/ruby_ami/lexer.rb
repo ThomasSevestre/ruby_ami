@@ -1,14 +1,17 @@
 # frozen_string_literal: true
 module RubyAMI
+  # Parses the AMI wire protocol as emitted by Asterisk >= 14: every message
+  # is a block of "Key: value" headers ended by an empty line. The Command
+  # action answers with "Output:" headers, one per CLI line, the pre-14
+  # "Response: Follows" / "--END COMMAND--" form is not supported.
   class Lexer
     PROMPT            = /Asterisk Call Manager\/([0-9.]+)\r\n/
     SUCCESS           = /response: *success/i
     PONG              = /response: *pong/i
     EVENT             = /event: *(?<event_name>.*)?/i
     ERROR             = /response: *error/i
-    FOLLOWS           = /response: *follows/i
     HEADER_SLICE      = /.*\r\n/
-    CLASSIFIER        = /((?<event>#{EVENT})|(?<success>#{SUCCESS})|(?<pong>#{PONG})|(?<follows>#{FOLLOWS})|(?<error>#{ERROR}))\r\n/i
+    CLASSIFIER        = /((?<event>#{EVENT})|(?<success>#{SUCCESS})|(?<pong>#{PONG})|(?<error>#{ERROR}))\r\n/i
 
     attr_accessor :ami_version
 
@@ -16,7 +19,7 @@ module RubyAMI
       @delegate = delegate
       @buffer = String.new
       @ami_version = nil
-      reset_current_message
+      @current_msg = nil
     end
 
     def <<(new_data)
@@ -26,18 +29,12 @@ module RubyAMI
 
     private
 
-    def reset_current_message
-      @current_msg= nil
-      @current_response_follows= false
-      @current_end_command= false
-    end
-
     def parse_buffer
       # Special case for the protocol header
       if @buffer.start_with?("Asterisk Call Manager") && @buffer =~ PROMPT
         @ami_version = $1
         @buffer.slice! HEADER_SLICE
-        reset_current_message
+        @current_msg = nil
       end
 
       processed = 0
@@ -61,7 +58,6 @@ module RubyAMI
             elsif line =~ /^(.+)\r\n$/
               immediate_msg= Response.new
               immediate_msg.text_body = $1
-              immediate_msg
               message_received immediate_msg
             end
             next
@@ -71,30 +67,18 @@ module RubyAMI
             Event.new match[:event_name]
           elsif match[:success] || match[:pong]
             Response.new
-          elsif match[:follows]
-            @current_response_follows = true
-            msg= Response.new
-            msg.text_body = String.new
-            msg
           elsif match[:error]
             Error.new
           end
 
-        elsif line == "\r\n" || ( @current_end_command && line.include?("--END COMMAND--") )
-          if @current_end_command
-            @current_msg.text_body.chop!
-          end
-
+        elsif line == "\r\n"
           case @current_msg
           when Error
             error_received @current_msg
           else
             message_received @current_msg
           end
-          reset_current_message
-
-        elsif @current_end_command
-          @current_msg.text_body<< line
+          @current_msg = nil
 
         else
           i= line.index(': ')
@@ -104,15 +88,10 @@ module RubyAMI
             value= line[i+1..-1]
             value.lstrip!
             @current_msg[key]= value
-          elsif @current_response_follows
-            @current_end_command= true
-            @current_msg.text_body<< line
           else
             # unsuported use case
             puts <<~EOS
               current_msg: #{@current_msg.inspect}
-              current_response_follows: #{@current_response_follows.inspect}
-              current_end_command: #{@current_end_command.inspect}
               line: #{line.inspect}
               buffer: #{@buffer.inspect}
             EOS
@@ -125,13 +104,13 @@ module RubyAMI
               end
             end
 
-            reset_current_message
+            @current_msg = nil
           end
         end
       end
 
     rescue
-      reset_current_message
+      @current_msg = nil
       raise
     ensure
       @buffer.slice! 0, processed

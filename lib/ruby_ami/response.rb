@@ -4,7 +4,7 @@ module RubyAMI
   # This is the object containing a response from Asterisk.
   #
   class Response
-    attr_accessor :text_body # For "Response: Follows" sections
+    attr_accessor :text_body # For immediate messages (lines outside of any header block)
 
     def initialize(headers = {})
       @headers = headers

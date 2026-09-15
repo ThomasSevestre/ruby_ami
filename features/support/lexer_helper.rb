@@ -79,29 +79,6 @@ def hash_to_stanza(hash)
   end + "\r\n"
 end
 
-def format_newlines(string)
-  # HOLY FUCK THIS IS UGLY
-  tmp_replacement = random_string
-  string.gsub("\r\n", tmp_replacement).
-         gsub("\n", "\r\n").
-         gsub(tmp_replacement, "\r\n")
-end
-
-def random_string
-  (rand(1_000_000_000_000) + 1_000_000_000).to_s
-end
-
-def follows_body_text(name)
-  case name
-    when "with_colon_after_first_line"
-      "Host                            Username       Refresh State                Reg.Time                 \r\nlax.teliax.net:5060             jicksta            105 Registered           Tue, 11 Nov 2008 02:29:55"
-    when "show_channels_from_wayne"
-      "Channel              Location             State   Application(Data)\r\n0 active channels\r\n0 active calls"
-    when "empty_string"
-      ""
-  end
-end
-
 def syntax_error_data(name)
   case name
     when "immediate_packet_with_colon"

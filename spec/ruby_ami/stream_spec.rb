@@ -136,34 +136,35 @@ module RubyAMI
         end
       end
 
-      it "can process an action with a Response: Follows result" do
+      it "can process a Command action response" do
         action_id = RubyAMI.new_uuid
         response = nil
         mocked_server(1, lambda do
           EM::defer do
-            response = @stream.send_action('Command', 'Command' => 'dialplan add extension 1,1,AGI,agi:async into adhearsion-redirect')
+            response = @stream.send_action('Command', 'Command' => 'core show version')
           end
         end) do |val, server|
           val.should == <<~ACTION
             Action: command\r
             ActionID: #{action_id}\r
-            Command: dialplan add extension 1,1,AGI,agi:async into adhearsion-redirect\r
+            Command: core show version\r
             \r
           ACTION
 
           server.send_data <<~EVENT
-            Response: Follows
-            Privilege: Command
+            Response: Success
             ActionID: #{action_id}
-            Extension '1,1,AGI(agi:async)' added into 'adhearsion-redirect' context
-            --END COMMAND--
+            Message: Command output follows
+            Output: Asterisk 20.5.0 built by root @ build on a x86_64
 
           EVENT
         end
 
-        expected_response = Response.new 'Privilege' => 'Command', 'ActionID' => action_id
-        expected_response.text_body = %q{Extension '1,1,AGI(agi:async)' added into 'adhearsion-redirect' context}
-        response.should == expected_response
+        response.should == Response.new(
+          'ActionID' => action_id,
+          'Message' => 'Command output follows',
+          'Output' => 'Asterisk 20.5.0 built by root @ build on a x86_64'
+        )
       end
 
       context "with a username and password set" do

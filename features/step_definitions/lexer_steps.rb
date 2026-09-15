@@ -41,26 +41,15 @@ Given "a stanza break" do
   @lexer << "\r\n\r\n"
 end
 
-Given /^a multi-line Response:Follows body of ([a-zA-Z_]+)$/ do |method_name|
-  multi_line_response_body = send(:follows_body_text, method_name)
-
-  multi_line_response = format_newlines(<<-RESPONSE + "\r\n") % multi_line_response_body
-Response: Follows\r
-Privilege: Command\r
-ActionID: 123123\r
-%s\r
---END COMMAND--\r\n\r
-  RESPONSE
-
-  @lexer << multi_line_response
-end
-
-Given "a multi-line Response:Follows response simulating uptime" do
-  uptime_response = "Response: Follows\r
-Privilege: Command\r
-System uptime: 46 minutes, 30 seconds\r
---END COMMAND--\r\n\r\n"
-  @lexer << uptime_response
+# Asterisk >= 14 : the Command action answers with one Output header per CLI line
+Given /^a Command action (Success|Error) response with Output lines:$/ do |status, lines|
+  stanza = "Response: #{status}\r\nActionID: 123123\r\nMessage: Command output follows\r\n"
+  # Asterisk emits one empty Output header when the command printed nothing
+  output_lines = lines.empty? ? [""] : lines.split("\n", -1)
+  output_lines.each do |line|
+    stanza << "Output: #{line}\r\n"
+  end
+  @lexer << stanza + "\r\n"
 end
 
 Given /^syntactically invalid (.*)$/ do |name|
@@ -105,10 +94,6 @@ end
 
 Given "an Authentication Required error" do
   @lexer << "Response: Error\r\nActionID: BPJeKqW2-SnVg-PyFs-vkXT-7AWVVPD0N3G7\r\nMessage: Authentication Required\r\n\r\n"
-end
-
-Given "a follows packet with a colon in it" do
-  @lexer << follows_body_text("with_colon")
 end
 
 Given "an invalid event" do
@@ -163,14 +148,6 @@ Then /^(\d+) messages? should have been received$/ do |number_received|
   @lexer.received_messages.size.should == number_received.to_i
 end
 
-Then /^the 'follows' body of (\d+) messages? received should equal (\w+)$/ do |number, method_name|
-  multi_line_response = follows_body_text method_name
-  @lexer.received_messages.should_not be_empty
-  @lexer.received_messages.select do |message|
-    message.text_body == multi_line_response
-  end.size.should == number.to_i
-end
-
 Then /^the version should be set to ([0-9.]+)$/ do |version|
   @lexer.ami_version.should == version
 end
@@ -188,6 +165,11 @@ Then /^the ([0-9a-z]+) AMI error should have the message "(.*)"$/ do |order, mes
   order = order[/^(\d+)\w+$/, 1].to_i - 1
   @lexer.ami_errors[order].should be_kind_of(RubyAMI::Error)
   @lexer.ami_errors[order].message.should eql(message)
+end
+
+Then /^the ([0-9a-z]+) AMI error should have a key "([^\"]*)" with value "([^\"]*)"$/ do |order, key, value|
+  order = order[/^(\d+)\w+$/, 1].to_i - 1
+  @lexer.ami_errors[order][key].should eql(value)
 end
 
 Then /^([0-9]+) message should be an immediate response with text "(.*)"$/ do |number, text|

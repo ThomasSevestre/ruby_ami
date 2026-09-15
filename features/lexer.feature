@@ -18,45 +18,52 @@ Feature: Lexing AMI
     Then the protocol should have lexed without syntax errors
     And 1 message should have been received
 
-  Scenario: Lexing the initial AMI header and then a Response:Follows section
+  Scenario: Lexing a Command action response
     Given a new lexer
     And a version header for AMI 1.0
-    And a multi-line Response:Follows body of show_channels_from_wayne
-
-    Then the protocol should have lexed without syntax errors
-    And the 'follows' body of 1 message received should equal show_channels_from_wayne
-
-  Scenario: Lexing a Response:Follows section with no body
-    Given a new lexer
-    And a version header for AMI 1.0
-    And a multi-line Response:Follows body of empty_String
-
-    Then the protocol should have lexed without syntax errors
-    And the 'follows' body of 1 message received should equal empty_string
-
-  Scenario: Lexing a multi-line Response:Follows simulating the "core show channels" command
-    Given a new lexer
-    And a version header for AMI 1.0
-    Given a multi-line Response:Follows body of show_channels_from_wayne
-
-    Then the protocol should have lexed without syntax errors
-    And the 'follows' body of 1 message received should equal show_channels_from_wayne
-
-  Scenario: Lexing a multi-line Response:Follows simulating the "core show uptime" command
-    Given a new lexer
-    And a version header for AMI 1.0
-    Given a multi-line Response:Follows response simulating uptime
-
-    Then the protocol should have lexed without syntax errors
-    And the first message received should have a key "System uptime" with value "46 minutes, 30 seconds"
-
-  Scenario: Lexing a Response:Follows section which has a colon not on the first line
-    Given a new lexer
-    And a multi-line Response:Follows body of with_colon_after_first_line
+    And a Command action Success response with Output lines:
+      """
+      Asterisk 20.5.0 built by root @ build on a x86_64
+      """
 
     Then the protocol should have lexed without syntax errors
     And 1 message should have been received
-    And the 'follows' body of 1 message received should equal with_colon_after_first_line
+    And the first message received should have a key "Message" with value "Command output follows"
+    And the first message received should have a key "Output" with value "Asterisk 20.5.0 built by root @ build on a x86_64"
+
+  Scenario: Lexing a Command action response with no output
+    Given a new lexer
+    And a version header for AMI 1.0
+    And a Command action Success response with Output lines:
+      """
+      """
+
+    Then the protocol should have lexed without syntax errors
+    And 1 message should have been received
+    And the first message received should have a key "Output" with value ""
+
+  Scenario: Lexing a Command action response whose output has a colon in it
+    Given a new lexer
+    And a Command action Success response with Output lines:
+      """
+      System uptime: 46 minutes, 30 seconds
+      """
+
+    Then the protocol should have lexed without syntax errors
+    And 1 message should have been received
+    And the first message received should have a key "Output" with value "System uptime: 46 minutes, 30 seconds"
+
+  Scenario: Lexing a failed Command action response
+    Given a new lexer
+    And a Command action Error response with Output lines:
+      """
+      Unable to retrieve endpoint 1234
+      """
+
+    Then the protocol should have lexed without syntax errors
+    And 1 AMI error should have been received
+    And the 1st AMI error should have the message "Command output follows"
+    And the 1st AMI error should have a key "Output" with value "Unable to retrieve endpoint 1234"
 
   @wip
   Scenario: Lexing an immediate response with a colon in it.
@@ -74,14 +81,22 @@ Feature: Lexing AMI
 
     Then the protocol should have lexed without syntax errors
 
-  Scenario: Lexing the initial AMI header and then a Response:Follows section
+  Scenario: Lexing two Command action responses in a row
     Given a new lexer
     And a version header for AMI 1.0
-    And a multi-line Response:Follows body of show_channels_from_wayne
-    And a multi-line Response:Follows body of show_channels_from_wayne
+    And a Command action Success response with Output lines:
+      """
+      0 active channels
+      """
+    And a Command action Success response with Output lines:
+      """
+      0 active calls
+      """
 
     Then the protocol should have lexed without syntax errors
-    And the 'follows' body of 2 messages received should equal show_channels_from_wayne
+    And 2 messages should have been received
+    And the 1st message received should have a key "Output" with value "0 active channels"
+    And the 2nd message received should have a key "Output" with value "0 active calls"
 
   Scenario: Lexing a stanza without receiving an AMI header
     Given a new lexer
