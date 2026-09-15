@@ -214,6 +214,27 @@ Cause: 0
       ]
     end
 
+    it 'logs an immediate message (plain text without ActionID) and keeps the stream alive' do
+      mocked_server(1, lambda { @stream.send_data 'Foo' }) do |val, server|
+        @stream.logger.should_receive(:info).with(/unrecognized ActionID/)
+        server.send_data <<-EVENT
+No queues have been created.
+
+Event: Hangup
+Channel: SIP/101-3f3f
+Uniqueid: 1094154427.10
+Cause: 0
+
+        EVENT
+      end
+
+      client_messages.should be == [
+        Stream::Connected.new("127.0.0.1", server_port),
+        Event.new('Hangup', 'Channel' => 'SIP/101-3f3f', 'Uniqueid' => '1094154427.10', 'Cause' => '0'),
+        Stream::Disconnected.new("127.0.0.1", server_port)
+      ]
+    end
+
     describe 'when a response is received' do
       before do
         expect_connected_event

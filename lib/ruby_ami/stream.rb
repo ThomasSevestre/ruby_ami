@@ -143,7 +143,8 @@ module RubyAMI
         action = @sent_actions.delete(message.action_id)
         if action
           action << message
-        elsif !message.action_id.end_with?("-no-callback")
+        elsif !message.action_id&.end_with?("-no-callback")
+          # also covers immediate messages (plain text lines) which have no ActionID
           logger.info "Received an AMI response with an unrecognized ActionID! #{message.inspect}"
         end
       end
